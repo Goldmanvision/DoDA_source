@@ -46,8 +46,15 @@ void ADoDAGameMode::BeginPlay()
             if (CaseSys)
             {
                 FCaseId CId = CaseSys->CreateCase(TEXT("Case 001 - Brightstar Daycare"), 2, 42);
-                CaseSys->AddPhase(CId, EPhaseType::Intake, 0.f);
-                UE_LOG(LogTemp, Log, TEXT("DoDA|GameMode -- case seeded id=%d"), CId.Value);
+                FCasePhaseId PhaseId = CaseSys->AddPhase(CId, EPhaseType::Intake, 0.f);
+
+                CaseSys->AddTask(CId, PhaseId, ETaskType::Surveillance, 1);
+                CaseSys->AddTask(CId, PhaseId, ETaskType::Interview, 2);
+                CaseSys->AddTask(CId, PhaseId, ETaskType::Paperwork, 3);
+                CaseSys->AddTask(CId, PhaseId, ETaskType::ForensicSweep, 2);
+                CaseSys->AddTask(CId, PhaseId, ETaskType::Research, 1);
+
+                UE_LOG(LogTemp, Log, TEXT("DoDA|GameMode -- case seeded id=%d, 5 tasks added"), CId.Value);
             }
         });
 }

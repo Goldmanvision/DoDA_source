@@ -71,6 +71,7 @@ void UDoDASimOrchestrator::TickScheduler(float DeltaSimTime)
     if (TimeSinceLastScheduler < SchedulerInterval) return;
 
     TimeSinceLastScheduler = 0.f;
+    SchedulerInterval = FMath::RandRange(SchedulerIntervalMin, SchedulerIntervalMax);
 
     UDoDASchedulerSubsystem* Sched = GetWorld()->GetSubsystem<UDoDASchedulerSubsystem>();
     if (Sched)
@@ -78,5 +79,6 @@ void UDoDASimOrchestrator::TickScheduler(float DeltaSimTime)
         Sched->RunScheduler();
     }
 
-    UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- scheduler pass at sim-day %d"), GetSimDay());
+    UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- scheduler pass at sim-day %d, next in %.1fs"),
+        GetSimDay(), SchedulerInterval);
 }

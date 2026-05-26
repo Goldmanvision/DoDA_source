@@ -41,7 +41,9 @@ private:
     bool  bPaused          = false;
 
     // Scheduler fires every SchedulerInterval sim-seconds
-    float SchedulerInterval      = 3600.f;   // 1 sim-hour
+    float SchedulerIntervalMin = 2700.f;   // 45 sim-minutes
+    float SchedulerIntervalMax = 4500.f;   // 75 sim-minutes
+    float SchedulerInterval = 7.f;   // will be randomized on first run
     float TimeSinceLastScheduler = 0.f;
 
     // Cult/paranormal step interval
