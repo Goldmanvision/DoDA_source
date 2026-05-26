@@ -1,0 +1,31 @@
+@"
+# Unreal Engine
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+*.sln
+*.suo
+*.user
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# Compiled files
+*.pyc
+*.pyo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Keep
+!Source/
+!Config/
+!Content/
+!.gitattributes
+"@ | Out-File -FilePath "D:\GameDev\DoDA\.gitignore" -Encoding utf8
