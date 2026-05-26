@@ -159,20 +159,22 @@ public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 
+    void SeedTestPawns(int32 Count);
+    int32 Count() const { return Pawns.Num(); }
+
     void RegisterPawn(const FPawnRecord& Record);
     void UnregisterPawn(FPawnId Id);
 
     FPawnRecord* GetPawnMutable(FPawnId Id);
     const FPawnRecord* GetPawn(FPawnId Id) const;
-    const TMap<FPawnId, FPawnRecord>& GetAll() const { return Pawns; }
+    const TMap<FPawnId, FPawnRecord>& GetAllPawns() const { return Pawns; }
 
     void UpdateVitals(float DeltaTime);
-    void SeedTestPawns(int32 Count);
-
-    int32 Count() const { return Pawns.Num(); }
+    void ApplyVitalsDelta(FPawnId Id, float StaminaDelta, float StressDelta, float SanityDelta);
 
 private:
     TMap<FPawnId, FPawnRecord> Pawns;
     int32 NextPawnId = 1;
+
     FPawnId AllocatePawnId();
 };

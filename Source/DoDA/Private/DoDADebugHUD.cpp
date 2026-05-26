@@ -54,7 +54,7 @@ void ADoDADebugHUD::DrawPawnVitals()
 
     DrawLine(FString::Printf(TEXT("[PAWNS] count=%d"), PawnSys->Count()), ColA, FLinearColor(0.f, 1.f, 1.f, 1.f));
 
-    for (const TPair<FPawnId, FPawnRecord>& Pair : PawnSys->GetAll())
+    for (const TPair<FPawnId, FPawnRecord>& Pair : PawnSys->GetAllPawns())
     {
         const FPawnRecord& P = Pair.Value;
         DrawLine(FString::Printf(

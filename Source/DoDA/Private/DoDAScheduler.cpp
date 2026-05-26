@@ -62,7 +62,7 @@ TArray<FAgentView> UDoDASchedulerSubsystem::BuildAgentViews() const
     UPawnSubsystem* PawnSys = GetWorld()->GetSubsystem<UPawnSubsystem>();
     if (!PawnSys) return Views;
 
-    for (const TPair<FPawnId, FPawnRecord>& Pair : PawnSys->GetAll())
+    for (const TPair<FPawnId, FPawnRecord>& Pair : PawnSys->GetAllPawns())
     {
         const FPawnRecord& Pawn = Pair.Value;
         FAgentView V;

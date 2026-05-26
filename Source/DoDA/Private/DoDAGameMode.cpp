@@ -1,4 +1,5 @@
 #include "DoDAGameMode.h"
+#include "DoDAConsoleCommands.h"
 #include "DoDAIdentity.h"
 #include "DoDADebugHUD.h"
 #include "DoDAPawn.h"
@@ -41,6 +42,12 @@ void ADoDAGameMode::BeginPlay()
                 MapSys->GenerateTown(42);
                 UE_LOG(LogTemp, Log, TEXT("DoDA|GameMode -- town generated"));
             }
+	
+
+            UDoDAConsoleCommands* ConsoleCmds = NewObject<UDoDAConsoleCommands>(GetTransientPackage());
+            ConsoleCmds->AddToRoot();
+            ConsoleCmds->RegisterCommands(World);
+UE_LOG(LogTemp, Log, TEXT("DoDA|GameMode -- console commands registered"));
 
             UCaseSubsystem* CaseSys = World->GetSubsystem<UCaseSubsystem>();
             if (CaseSys)
