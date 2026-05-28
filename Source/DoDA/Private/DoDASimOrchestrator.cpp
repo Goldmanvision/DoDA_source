@@ -2,6 +2,7 @@
 #include "DoDAPawn.h"
 #include "DoDACult.h"
 #include "DoDAScheduler.h"
+#include "DoDACase.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 
@@ -37,6 +38,7 @@ void UDoDASimOrchestrator::Tick(float DeltaTime)
     TickVitals(DeltaSimTime);
     TickCult(DeltaSimTime);
     TickScheduler(DeltaSimTime);
+    TickTasks(DeltaSimTime);
 }
 
 void UDoDASimOrchestrator::TickVitals(float DeltaSimTime)
@@ -81,4 +83,16 @@ void UDoDASimOrchestrator::TickScheduler(float DeltaSimTime)
 
     UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- scheduler pass at sim-day %d, next in %.1fs"),
         GetSimDay(), SchedulerInterval);
+}
+
+void UDoDASimOrchestrator::TickTasks(float DeltaSimTime)
+{
+    UCaseSubsystem* Cases = GetWorld()->GetSubsystem<UCaseSubsystem>();
+    if (!Cases) return;
+
+    TArray<FTask> ActiveTasks = Cases->GetAllActiveTasks();
+    for (const FTask& Task : ActiveTasks)
+    {
+        Cases->TickTaskProgress(Task.TaskId, DeltaSimTime);
+    }
 }

@@ -171,3 +171,39 @@ FWarrant* UCaseSubsystem::GetWarrantMutable(FWarrantId Id) { return Warrants.Fin
 
 FCaseTrack* UCaseSubsystem::GetTrackMutable(FCaseId CaseId) { return Tracks.Find(CaseId); }
 const FCaseTrack* UCaseSubsystem::GetTrack(FCaseId CaseId) const { return Tracks.Find(CaseId); }
+
+void UCaseSubsystem::TickTaskProgress(FTaskId TaskId, float DeltaSimTime)
+{
+    FTask* Task = GetTaskMutable(TaskId);
+    if (!Task) return;
+    if (Task->Status != ETaskStatus::InProgress) return;
+
+    Task->WorkAccumulated += DeltaSimTime;
+
+    if (Task->WorkAccumulated >= Task->WorkRequired)
+    {
+        Task->Status = ETaskStatus::Complete;
+        UE_LOG(LogTemp, Log, TEXT("DoDA|Case -- Task %d Complete (Case %d)"),
+            TaskId.Value, Task->CaseId.Value);
+        OnTaskComplete.Broadcast(TaskId, Task->CaseId);
+    }
+}
+
+void UCaseSubsystem::SetTaskStatus(FTaskId TaskId, ETaskStatus NewStatus)
+{
+    FTask* Task = GetTaskMutable(TaskId);
+    if (!Task) return;
+    Task->Status = NewStatus;
+    UE_LOG(LogTemp, Log, TEXT("DoDA|Case -- Task %d status -> %d"),
+        TaskId.Value, (uint8)NewStatus);
+}
+
+TArray<FTask> UCaseSubsystem::GetPendingTasks() const
+{
+    TArray<FTask> Result;
+    for (const auto& Pair : Tasks)
+        if (Pair.Value.Status == ETaskStatus::Pending)
+            Result.Add(Pair.Value);
+    return Result;
+}
+

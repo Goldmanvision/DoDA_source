@@ -5,6 +5,12 @@
 void UDoDASchedulerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
+
+    UCaseSubsystem* CaseSys = GetWorld()->GetSubsystem<UCaseSubsystem>();
+    if (CaseSys)
+    {
+        CaseSys->OnTaskComplete.AddUObject(this, &UDoDASchedulerSubsystem::OnTaskCompleted);
+    }
 }
 
 void UDoDASchedulerSubsystem::RunScheduler()
@@ -21,7 +27,7 @@ void UDoDASchedulerSubsystem::RunScheduler()
     TArray<bool> AgentUsed;
     AgentUsed.Init(false, Agents.Num());
 
-    TArray<FTask> OpenTasks = CaseSys->GetAllActiveTasks();
+    TArray<FTask> OpenTasks = CaseSys->GetPendingTasks();
 
     for (const FTask& Task : OpenTasks)
     {
@@ -49,6 +55,7 @@ void UDoDASchedulerSubsystem::RunScheduler()
             A.PawnId = Agents[BestIdx].PawnId;
             A.Cost = BestCost;
             Assignments.Add(A);
+            CaseSys->SetTaskStatus(Task.TaskId, ETaskStatus::InProgress);
 
             UE_LOG(LogTemp, Log, TEXT("DoDA|Scheduler -- Task %d -> Pawn %d (cost %.1f)"),
                 Task.TaskId.Value, Agents[BestIdx].PawnId.Value, BestCost);
@@ -123,4 +130,15 @@ float UDoDASchedulerSubsystem::ComputeCost(const FAgentView& Agent, const FTask&
     Cost -= Agent.Stamina * 0.1f;
 
     return FMath::Max(0.f, Cost);
+}
+
+void UDoDASchedulerSubsystem::OnTaskCompleted(FTaskId TaskId, FCaseId CaseId)
+{
+    Assignments.RemoveAll([&TaskId](const FSchedulerAssignment& A)
+        {
+            return A.TaskId == TaskId;
+        });
+
+    UE_LOG(LogTemp, Log, TEXT("DoDA|Scheduler -- Task %d freed (Case %d)"),
+        TaskId.Value, CaseId.Value);
 }

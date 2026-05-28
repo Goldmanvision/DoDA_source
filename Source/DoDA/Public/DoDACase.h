@@ -185,6 +185,12 @@ struct DODA_API FTask
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 MaxAgents = 1;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float WorkAccumulated = 0.f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float WorkRequired = 100.f;
+
     bool IsValid() const { return TaskId.IsValid(); }
 };
 
@@ -302,6 +308,8 @@ struct DODA_API FCaseTrack
 // SUBSYSTEM
 // -----------------------------------------------------------------
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTaskComplete, FTaskId, FCaseId);
+
 UCLASS()
 class DODA_API UCaseSubsystem : public UWorldSubsystem
 {
@@ -324,7 +332,11 @@ public:
     FTaskId AddTask(FCaseId CaseId, FCasePhaseId PhaseId, ETaskType Type, int32 Priority);
     TArray<FTask> GetActiveTasksForCase(FCaseId CaseId) const;
     TArray<FTask> GetAllActiveTasks() const;
+    void TickTaskProgress(FTaskId TaskId, float DeltaSimTime);
     FTask* GetTaskMutable(FTaskId Id);
+    void SetTaskStatus(FTaskId TaskId, ETaskStatus NewStatus);
+    TArray<FTask> GetPendingTasks() const;
+    FOnTaskComplete OnTaskComplete;
 
     // Assignments
     FAssignmentId AddAssignment(FTaskId TaskId, FPawnId AgentId, float Cost, float StartTime, float EndTime);

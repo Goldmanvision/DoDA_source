@@ -21,6 +21,27 @@ void ADoDADebugHUD::DrawHUD()
     DrawCaseState();
 }
 
+void ADoDADebugHUD::BeginPlay()
+{
+    Super::BeginPlay();
+
+    UCaseSubsystem* CaseSys = GetWorld()->GetSubsystem<UCaseSubsystem>();
+    if (CaseSys)
+    {
+        CaseSys->OnTaskComplete.AddUObject(this, &ADoDADebugHUD::OnTaskCompleted);
+    }
+}
+
+void ADoDADebugHUD::OnTaskCompleted(FTaskId TaskId, FCaseId CaseId)
+{
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
+            FString::Printf(TEXT("DoDA|HUD -- Task %d Complete (Case %d)"),
+                TaskId.Value, CaseId.Value));
+    }
+}
+
 void ADoDADebugHUD::DrawLine(const FString& Text, float X, FLinearColor Color)
 {
     DrawText(Text, Color, X, YCursor);

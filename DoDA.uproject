@@ -17,14 +17,6 @@
 			"TargetAllowList": [
 				"Editor"
 			]
-		},
-		{
-			"Name": "PixelStreaming2",
-			"Enabled": true
-		},
-		{
-			"Name": "PixelStreamingPlayer",
-			"Enabled": true
 		}
 	]
 }

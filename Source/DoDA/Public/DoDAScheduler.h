@@ -78,4 +78,6 @@ private:
 
     TArray<FAgentView> BuildAgentViews() const;
     float ComputeCost(const FAgentView& Agent, const FTask& Task) const;
+
+    void OnTaskCompleted(FTaskId TaskId, FCaseId CaseId);
 };

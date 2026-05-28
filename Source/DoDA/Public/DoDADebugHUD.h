@@ -12,12 +12,14 @@ class DODA_API ADoDADebugHUD : public AHUD
 
 public:
     virtual void DrawHUD() override;
+    virtual void BeginPlay() override;
 
 private:
     void DrawSimTime();
     void DrawPawnVitals();
     void DrawCultState();
     void DrawCaseState();
+
 
     // Layout helpers
     float LineHeight = 18.f;
@@ -28,4 +30,6 @@ private:
 
     void DrawLine(const FString& Text, float X, FLinearColor Color = FLinearColor::White);
     void ResetCursor() { YCursor = 20.f; }
+
+    void OnTaskCompleted(FTaskId TaskId, FCaseId CaseId);
 };

@@ -55,4 +55,5 @@ private:
     void TickVitals(float DeltaSimTime);
     void TickCult(float DeltaSimTime);
     void TickScheduler(float DeltaSimTime);
+    void TickTasks(float DeltaSimTime);
 };
