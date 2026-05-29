@@ -1,3 +1,7 @@
+// Source/DoDA/Public/DoDAScheduler.h
+// Batch 05 -- Scheduler subsystem with work-state awareness.
+// ASCII-only.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -6,6 +10,7 @@
 #include "DoDACase.h"
 #include "DoDAPawn.h"
 #include "DoDAScheduler.generated.h"
+
 
 USTRUCT(BlueprintType)
 struct DODA_API FAgentView
@@ -41,7 +46,11 @@ struct DODA_API FAgentView
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EPawnStatus Status = EPawnStatus::Active;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EWorkState WorkState = EWorkState::Available;
 };
+
 
 USTRUCT(BlueprintType)
 struct DODA_API FSchedulerAssignment
@@ -57,6 +66,7 @@ struct DODA_API FSchedulerAssignment
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float Cost = 0.f;
 };
+
 
 UCLASS()
 class DODA_API UDoDASchedulerSubsystem : public UWorldSubsystem
@@ -78,6 +88,7 @@ private:
 
     TArray<FAgentView> BuildAgentViews() const;
     float ComputeCost(const FAgentView& Agent, const FTask& Task) const;
+    bool IsAgentAssignable(const FAgentView& Agent) const;
 
     void OnTaskCompleted(FTaskId TaskId, FCaseId CaseId);
 };

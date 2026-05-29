@@ -1,3 +1,6 @@
+// Source/DoDA/Private/DoDAScheduler.cpp
+// Batch 05 -- ASCII-only.
+
 #include "DoDAScheduler.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
@@ -10,6 +13,25 @@ void UDoDASchedulerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     if (CaseSys)
     {
         CaseSys->OnTaskComplete.AddUObject(this, &UDoDASchedulerSubsystem::OnTaskCompleted);
+    }
+}
+
+bool UDoDASchedulerSubsystem::IsAgentAssignable(const FAgentView& Agent) const
+{
+    if (Agent.Status != EPawnStatus::Active) return false;
+
+    switch (Agent.WorkState)
+    {
+    case EWorkState::Available:
+        return true;
+    case EWorkState::Busy:
+    case EWorkState::InTransit:
+    case EWorkState::OnSite:
+    case EWorkState::Injured:
+    case EWorkState::Recovering:
+    case EWorkState::Detached:
+    default:
+        return false;
     }
 }
 
@@ -37,7 +59,7 @@ void UDoDASchedulerSubsystem::RunScheduler()
         for (int32 i = 0; i < Agents.Num(); i++)
         {
             if (AgentUsed[i]) continue;
-            if (Agents[i].Status != EPawnStatus::Active) continue;
+            if (!IsAgentAssignable(Agents[i])) continue;
 
             float Cost = ComputeCost(Agents[i], Task);
             if (Cost < BestCost)
@@ -50,12 +72,21 @@ void UDoDASchedulerSubsystem::RunScheduler()
         if (BestIdx != INDEX_NONE)
         {
             AgentUsed[BestIdx] = true;
+
             FSchedulerAssignment A;
             A.TaskId = Task.TaskId;
             A.PawnId = Agents[BestIdx].PawnId;
             A.Cost = BestCost;
             Assignments.Add(A);
+
             CaseSys->SetTaskStatus(Task.TaskId, ETaskStatus::InProgress);
+
+            // Mark pawn as busy in pawn subsystem
+            FPawnRecord* Pawn = PawnSys->GetPawnMutable(Agents[BestIdx].PawnId);
+            if (Pawn)
+            {
+                Pawn->RoleState.WorkState = EWorkState::Busy;
+            }
 
             UE_LOG(LogTemp, Log, TEXT("DoDA|Scheduler -- Task %d -> Pawn %d (cost %.1f)"),
                 Task.TaskId.Value, Agents[BestIdx].PawnId.Value, BestCost);
@@ -66,23 +97,27 @@ void UDoDASchedulerSubsystem::RunScheduler()
 TArray<FAgentView> UDoDASchedulerSubsystem::BuildAgentViews() const
 {
     TArray<FAgentView> Views;
+
     UPawnSubsystem* PawnSys = GetWorld()->GetSubsystem<UPawnSubsystem>();
     if (!PawnSys) return Views;
 
     for (const TPair<FPawnId, FPawnRecord>& Pair : PawnSys->GetAllPawns())
     {
         const FPawnRecord& Pawn = Pair.Value;
+
         FAgentView V;
         V.PawnId = Pawn.PawnId;
         V.RoleClass = Pawn.RoleState.RoleClass;
         V.Stress = Pawn.Vitals.StressCurrent;
         V.Stamina = Pawn.Vitals.StaminaCurrent;
         V.Status = Pawn.RoleState.CurrentStatus;
+        V.WorkState = Pawn.RoleState.WorkState;
         V.Investigation = Pawn.Skills.Investigation;
         V.Medicine = Pawn.Skills.Medicine;
         V.OccultKnowledge = Pawn.Skills.OccultKnowledge;
         V.Surveillance = Pawn.Skills.Surveillance;
         V.Interviewing = Pawn.Skills.Interviewing;
+
         Views.Add(V);
     }
 
@@ -134,6 +169,21 @@ float UDoDASchedulerSubsystem::ComputeCost(const FAgentView& Agent, const FTask&
 
 void UDoDASchedulerSubsystem::OnTaskCompleted(FTaskId TaskId, FCaseId CaseId)
 {
+    // Find the pawn assigned to this task and free their work state
+    UPawnSubsystem* PawnSys = GetWorld()->GetSubsystem<UPawnSubsystem>();
+
+    for (const FSchedulerAssignment& A : Assignments)
+    {
+        if (A.TaskId == TaskId && PawnSys)
+        {
+            FPawnRecord* Pawn = PawnSys->GetPawnMutable(A.PawnId);
+            if (Pawn && Pawn->RoleState.CurrentStatus == EPawnStatus::Active)
+            {
+                Pawn->RoleState.WorkState = EWorkState::Available;
+            }
+        }
+    }
+
     Assignments.RemoveAll([&TaskId](const FSchedulerAssignment& A)
         {
             return A.TaskId == TaskId;
