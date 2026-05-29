@@ -1,3 +1,6 @@
+// Source/DoDA/Private/DoDACult.cpp
+// Batch 07 -- ASCII-only.
+
 #include "DoDACult.h"
 #include "DoDACase.h"
 #include "Engine/World.h"
@@ -25,17 +28,23 @@ void UCultSubsystem::Deinitialize()
 
 FCultCellId UCultSubsystem::AllocateCellId()
 {
-    FCultCellId Id; Id.Value = NextCellId++; return Id;
+    FCultCellId Id;
+    Id.Value = NextCellId++;
+    return Id;
 }
 
 FEntityId UCultSubsystem::AllocateEntityId()
 {
-    FEntityId Id; Id.Value = NextEntityId++; return Id;
+    FEntityId Id;
+    Id.Value = NextEntityId++;
+    return Id;
 }
 
 FParanormalSiteId UCultSubsystem::AllocateSiteId()
 {
-    FParanormalSiteId Id; Id.Value = NextSiteId++; return Id;
+    FParanormalSiteId Id;
+    Id.Value = NextSiteId++;
+    return Id;
 }
 
 // -----------------------------------------------------------------
@@ -45,6 +54,7 @@ FParanormalSiteId UCultSubsystem::AllocateSiteId()
 FCultCellId UCultSubsystem::AddCultCell(const FString& Name, FAreaId AreaId, FCaseId CaseId)
 {
     FCultCellId NewId = AllocateCellId();
+
     FCultCell Cell;
     Cell.CellId = NewId;
     Cell.CellName = Name;
@@ -52,8 +62,10 @@ FCultCellId UCultSubsystem::AddCultCell(const FString& Name, FAreaId AreaId, FCa
     Cell.LinkedCaseId = CaseId;
     Cell.Influence = 10.f;
     Cell.ThreatState = EHazardState::Latent;
+
     Cells.Add(NewId, Cell);
     EnsureAreaInfluence(AreaId);
+
     return NewId;
 }
 
@@ -93,7 +105,9 @@ TArray<FCultMember> UCultSubsystem::GetMembersForCell(FCultCellId CellId) const
     for (const TPair<FPawnId, FCultMember>& Pair : Members)
     {
         if (Pair.Value.CellId == CellId)
+        {
             Out.Add(Pair.Value);
+        }
     }
     return Out;
 }
@@ -108,6 +122,7 @@ void UCultSubsystem::EnsureAreaInfluence(FAreaId AreaId)
     {
         FAreaInfluence AI;
         AI.AreaId = AreaId;
+        AI.HazardState = EHazardState::None;
         AreaInfluences.Add(AreaId, AI);
     }
 }
@@ -129,11 +144,13 @@ const FAreaInfluence* UCultSubsystem::GetAreaInfluence(FAreaId AreaId) const
 FEntityId UCultSubsystem::AddEntity(const FString& Name, EParanormalType Type, float ThreatRating)
 {
     FEntityId NewId = AllocateEntityId();
+
     FParanormalEntity Entity;
     Entity.EntityId = NewId;
     Entity.Name = Name;
     Entity.EntityType = Type;
-    Entity.ThreatRating = ThreatRating;
+    Entity.ThreatRating = FMath::Clamp(ThreatRating, 0.f, 100.f);
+
     Entities.Add(NewId, Entity);
     return NewId;
 }
@@ -150,6 +167,7 @@ const FParanormalEntity* UCultSubsystem::GetEntity(FEntityId Id) const
 FParanormalSiteId UCultSubsystem::AddSite(FEntityId EntityId, FAreaId AreaId, FRoomId RoomId)
 {
     FParanormalSiteId NewId = AllocateSiteId();
+
     FParanormalSite Site;
     Site.SiteId = NewId;
     Site.EntityId = EntityId;
@@ -157,8 +175,10 @@ FParanormalSiteId UCultSubsystem::AddSite(FEntityId EntityId, FAreaId AreaId, FR
     Site.RoomId = RoomId;
     Site.SiteState = EHazardState::None;
     Site.Intensity = 5.f;
+
     Sites.Add(NewId, Site);
     EnsureAreaInfluence(AreaId);
+
     return NewId;
 }
 
@@ -173,7 +193,9 @@ TArray<FParanormalSite> UCultSubsystem::GetSitesForArea(FAreaId AreaId) const
     for (const TPair<FParanormalSiteId, FParanormalSite>& Pair : Sites)
     {
         if (Pair.Value.AreaId == AreaId)
+        {
             Out.Add(Pair.Value);
+        }
     }
     return Out;
 }
@@ -184,10 +206,10 @@ TArray<FParanormalSite> UCultSubsystem::GetSitesForArea(FAreaId AreaId) const
 
 EHazardState UCultSubsystem::ComputeHazardState(float Intensity) const
 {
-    if (Intensity <= 0.f)  return EHazardState::None;
-    if (Intensity < 25.f)  return EHazardState::Latent;
-    if (Intensity < 60.f)  return EHazardState::Active;
-    if (Intensity < 90.f)  return EHazardState::Critical;
+    if (Intensity <= 0.f) return EHazardState::None;
+    if (Intensity < 25.f) return EHazardState::Latent;
+    if (Intensity < 60.f) return EHazardState::Active;
+    if (Intensity < 90.f) return EHazardState::Critical;
     return EHazardState::Critical;
 }
 
@@ -200,6 +222,7 @@ void UCultSubsystem::StepCult(float DeltaSimTime)
 
         int32 MemberCount = GetMembersForCell(Cell.CellId).Num();
         float GrowthRate = 0.5f + MemberCount * 0.2f;
+
         Cell.Influence = FMath::Clamp(Cell.Influence + GrowthRate * DeltaSimTime, 0.f, 100.f);
         Cell.ThreatState = ComputeHazardState(Cell.Influence);
 
@@ -220,7 +243,7 @@ void UCultSubsystem::StepParanormal(float DeltaSimTime)
         if (Site.SiteState == EHazardState::Contained) continue;
 
         const FParanormalEntity* Entity = Entities.Find(Site.EntityId);
-        float GrowthRate = Entity ? Entity->ThreatRating * 0.3f : 0.2f;
+        float GrowthRate = Entity ? FMath::Clamp(Entity->ThreatRating, 0.f, 100.f) * 0.3f : 0.2f;
 
         FAreaInfluence* AI = AreaInfluences.Find(Site.AreaId);
         float CultBoost = AI ? AI->CultInfluence * 0.01f : 0.f;
@@ -248,14 +271,23 @@ void UCultSubsystem::StepParanormal(float DeltaSimTime)
 
 void UCultSubsystem::SeedTestData()
 {
-    FAreaId TestArea; TestArea.Value = 1;
-    FCaseId TestCase; TestCase.Value = 1;
-    FRoomId TestRoom; TestRoom.Value = 1;
+    FAreaId TestArea;
+    TestArea.Value = 1;
+
+    FCaseId TestCase;
+    TestCase.Value = 1;
+
+    FRoomId TestRoom;
+    TestRoom.Value = 1;
 
     FCultCellId CellId = AddCultCell(TEXT("Cell Azathoth-7"), TestArea, TestCase);
 
-    FPawnId M1; M1.Value = 10;
-    FPawnId M2; M2.Value = 11;
+    FPawnId M1;
+    M1.Value = 10;
+
+    FPawnId M2;
+    M2.Value = 11;
+
     AddCultMember(M1, CellId, ECultRoleInCell::Priest);
     AddCultMember(M2, CellId, ECultRoleInCell::Operative);
 
