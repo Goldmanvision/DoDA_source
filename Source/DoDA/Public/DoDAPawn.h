@@ -26,6 +26,9 @@ struct DODA_API FRoleState
     EPawnStatus CurrentStatus = EPawnStatus::Active;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EWorkState WorkState = EWorkState::Available;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FBuildingId HomeBaseId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

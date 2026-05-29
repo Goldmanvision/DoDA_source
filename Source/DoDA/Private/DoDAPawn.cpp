@@ -13,12 +13,12 @@ int32 FSkills::GetSkillForTask(ETaskType TaskType) const
     case ETaskType::ForensicSweep:  return Forensics;
     case ETaskType::Research:       return FieldResearch;
     case ETaskType::Arrest:         return Arrest;
-    case ETaskType::Containment:    return Containment;
-    case ETaskType::Paperwork:      return Bureaucracy;
-    case ETaskType::Negotiation:    return DiplomagicalNegotiation;
-    case ETaskType::Infiltration:   return Stealth;
-    case ETaskType::ParanormalScan: return OccultKnowledge;
-    default:                        return 0;
+    case ETaskType::Containment:     return Containment;
+    case ETaskType::Paperwork:       return Bureaucracy;
+    case ETaskType::Negotiation:     return DiplomagicalNegotiation;
+    case ETaskType::Infiltration:    return Stealth;
+    case ETaskType::ParanormalScan:  return OccultKnowledge;
+    default:                         return 0;
     }
 }
 
@@ -77,6 +77,7 @@ void UPawnSubsystem::UpdateVitals(float DeltaTime)
         if (V.StaminaCurrent <= 0.f)
         {
             V.ExhaustionCurrent = FMath::Min(100.f, V.ExhaustionCurrent + (2.f * DeltaTime));
+            P.RoleState.WorkState = EWorkState::Recovering;
         }
 
         if (V.StressCurrent < 25.f)
@@ -89,8 +90,20 @@ void UPawnSubsystem::UpdateVitals(float DeltaTime)
         if (V.BloodCurrent <= 0.f || V.SanityCurrent <= 0.f)
         {
             P.RoleState.CurrentStatus = EPawnStatus::Incapacitated;
+            P.RoleState.WorkState = EWorkState::Injured;
         }
     }
+}
+
+void UPawnSubsystem::ApplyVitalsDelta(FPawnId Id, float StaminaDelta, float StressDelta, float SanityDelta)
+{
+    FPawnRecord* Pawn = GetPawnMutable(Id);
+    if (!Pawn) return;
+
+    FVitals& V = Pawn->Vitals;
+    V.StaminaCurrent = FMath::Clamp(V.StaminaCurrent + StaminaDelta, 0.f, V.StaminaMax);
+    V.StressCurrent = FMath::Clamp(V.StressCurrent + StressDelta, 0.f, V.StressMax);
+    V.SanityCurrent = FMath::Clamp(V.SanityCurrent + SanityDelta, 0.f, V.SanityMax);
 }
 
 void UPawnSubsystem::SeedTestPawns(int32 Count)
@@ -112,6 +125,7 @@ void UPawnSubsystem::SeedTestPawns(int32 Count)
         R.RoleState.Faction = EFaction::Bureau;
         R.RoleState.RoleClass = ERoleClass::FieldAgent;
         R.RoleState.CurrentStatus = EPawnStatus::Active;
+        R.RoleState.WorkState = EWorkState::Available;
 
         R.Stats.Body = 5;
         R.Stats.Agility = 5;

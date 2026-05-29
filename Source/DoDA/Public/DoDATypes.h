@@ -268,6 +268,18 @@ enum class EPawnStatus : uint8
     Rogue           UMETA(DisplayName = "Rogue"),
 };
 
+UENUM(BlueprintType)
+enum class EWorkState : uint8
+{
+    Available   UMETA(DisplayName = "Available"),
+    Busy        UMETA(DisplayName = "Busy"),
+    InTransit   UMETA(DisplayName = "In Transit"),
+    OnSite      UMETA(DisplayName = "On Site"),
+    Injured     UMETA(DisplayName = "Injured"),
+    Recovering  UMETA(DisplayName = "Recovering"),
+    Detached    UMETA(DisplayName = "Detached"),
+};
+
 
 UENUM(BlueprintType)
 enum class ECaseStatus : uint8
