@@ -128,6 +128,15 @@ struct DODA_API FCase
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 Seed = 0;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 Progress = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 Risk = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FCasePhaseId CurrentPhaseId;
+
     bool IsValid() const { return CaseId.IsValid(); }
 };
 
@@ -327,6 +336,12 @@ public:
     // Phases
     FCasePhaseId AddPhase(FCaseId CaseId, EPhaseType PhaseType, float StartTime);
     TArray<FCasePhase> GetPhasesForCase(FCaseId CaseId) const;
+    void SetCurrentPhase(FCaseId CaseId, FCasePhaseId PhaseId);
+
+    // Case progression
+    void TickCaseProgress(FCaseId CaseId, float DeltaSimTime);
+    void AddCaseProgress(FCaseId CaseId, int32 Amount);
+    void AddCaseRisk(FCaseId CaseId, int32 Amount);
 
     // Tasks
     FTaskId AddTask(FCaseId CaseId, FCasePhaseId PhaseId, ETaskType Type, int32 Priority);

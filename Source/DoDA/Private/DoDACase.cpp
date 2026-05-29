@@ -6,25 +6,70 @@
 void UCaseSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
-    Cases.Empty(); Phases.Empty(); Tasks.Empty();
-    Assignments.Empty(); Evidences.Empty(); Warrants.Empty(); Tracks.Empty();
+    Cases.Empty();
+    Phases.Empty();
+    Tasks.Empty();
+    Assignments.Empty();
+    Evidences.Empty();
+    Warrants.Empty();
+    Tracks.Empty();
     NextCaseId = NextPhaseId = NextTaskId = 1;
     NextAssignId = NextEvidenceId = NextWarrantId = 1;
 }
 
 void UCaseSubsystem::Deinitialize()
 {
-    Cases.Empty(); Phases.Empty(); Tasks.Empty();
-    Assignments.Empty(); Evidences.Empty(); Warrants.Empty(); Tracks.Empty();
+    Cases.Empty();
+    Phases.Empty();
+    Tasks.Empty();
+    Assignments.Empty();
+    Evidences.Empty();
+    Warrants.Empty();
+    Tracks.Empty();
     Super::Deinitialize();
 }
 
-FCaseId       UCaseSubsystem::AllocateCaseId() { FCaseId       Id; Id.Value = NextCaseId++;      return Id; }
-FCasePhaseId  UCaseSubsystem::AllocatePhaseId() { FCasePhaseId  Id; Id.Value = NextPhaseId++;     return Id; }
-FTaskId       UCaseSubsystem::AllocateTaskId() { FTaskId       Id; Id.Value = NextTaskId++;      return Id; }
-FAssignmentId UCaseSubsystem::AllocateAssignmentId() { FAssignmentId Id; Id.Value = NextAssignId++;    return Id; }
-FEvidenceId   UCaseSubsystem::AllocateEvidenceId() { FEvidenceId   Id; Id.Value = NextEvidenceId++;  return Id; }
-FWarrantId    UCaseSubsystem::AllocateWarrantId() { FWarrantId    Id; Id.Value = NextWarrantId++;   return Id; }
+FCaseId UCaseSubsystem::AllocateCaseId()
+{
+    FCaseId Id;
+    Id.Value = NextCaseId++;
+    return Id;
+}
+
+FCasePhaseId UCaseSubsystem::AllocatePhaseId()
+{
+    FCasePhaseId Id;
+    Id.Value = NextPhaseId++;
+    return Id;
+}
+
+FTaskId UCaseSubsystem::AllocateTaskId()
+{
+    FTaskId Id;
+    Id.Value = NextTaskId++;
+    return Id;
+}
+
+FAssignmentId UCaseSubsystem::AllocateAssignmentId()
+{
+    FAssignmentId Id;
+    Id.Value = NextAssignId++;
+    return Id;
+}
+
+FEvidenceId UCaseSubsystem::AllocateEvidenceId()
+{
+    FEvidenceId Id;
+    Id.Value = NextEvidenceId++;
+    return Id;
+}
+
+FWarrantId UCaseSubsystem::AllocateWarrantId()
+{
+    FWarrantId Id;
+    Id.Value = NextWarrantId++;
+    return Id;
+}
 
 FCaseId UCaseSubsystem::CreateCase(const FString& Title, int32 Difficulty, int32 Seed)
 {
@@ -34,6 +79,8 @@ FCaseId UCaseSubsystem::CreateCase(const FString& Title, int32 Difficulty, int32
     C.Status = ECaseStatus::Open;
     C.Difficulty = Difficulty;
     C.Seed = Seed;
+    C.Progress = 0;
+    C.Risk = 0;
     Cases.Add(C.CaseId, C);
 
     FCaseTrack Track;
@@ -43,8 +90,15 @@ FCaseId UCaseSubsystem::CreateCase(const FString& Title, int32 Difficulty, int32
     return C.CaseId;
 }
 
-FCase* UCaseSubsystem::GetCaseMutable(FCaseId Id) { return Cases.Find(Id); }
-const FCase* UCaseSubsystem::GetCase(FCaseId Id) const { return Cases.Find(Id); }
+FCase* UCaseSubsystem::GetCaseMutable(FCaseId Id)
+{
+    return Cases.Find(Id);
+}
+
+const FCase* UCaseSubsystem::GetCase(FCaseId Id) const
+{
+    return Cases.Find(Id);
+}
 
 FCasePhaseId UCaseSubsystem::AddPhase(FCaseId CaseId, EPhaseType PhaseType, float StartTime)
 {
@@ -53,7 +107,15 @@ FCasePhaseId UCaseSubsystem::AddPhase(FCaseId CaseId, EPhaseType PhaseType, floa
     P.CaseId = CaseId;
     P.PhaseType = PhaseType;
     P.StartTime = StartTime;
+    P.EndTime = 0.f;
     Phases.Add(P.PhaseId, P);
+
+    FCase* Case = GetCaseMutable(CaseId);
+    if (Case && !Case->CurrentPhaseId.IsValid())
+    {
+        Case->CurrentPhaseId = P.PhaseId;
+    }
+
     return P.PhaseId;
 }
 
@@ -61,8 +123,63 @@ TArray<FCasePhase> UCaseSubsystem::GetPhasesForCase(FCaseId CaseId) const
 {
     TArray<FCasePhase> Result;
     for (const auto& Pair : Phases)
-        if (Pair.Value.CaseId == CaseId) Result.Add(Pair.Value);
+    {
+        if (Pair.Value.CaseId == CaseId)
+        {
+            Result.Add(Pair.Value);
+        }
+    }
     return Result;
+}
+
+void UCaseSubsystem::SetCurrentPhase(FCaseId CaseId, FCasePhaseId PhaseId)
+{
+    FCase* Case = GetCaseMutable(CaseId);
+    if (!Case) return;
+    Case->CurrentPhaseId = PhaseId;
+}
+
+void UCaseSubsystem::AddCaseProgress(FCaseId CaseId, int32 Amount)
+{
+    FCase* Case = GetCaseMutable(CaseId);
+    if (!Case) return;
+
+    Case->Progress = FMath::Clamp(Case->Progress + Amount, 0, 100);
+
+    if (Case->Progress >= 100 && Case->Status == ECaseStatus::Open)
+    {
+        Case->Status = ECaseStatus::Active;
+    }
+}
+
+void UCaseSubsystem::AddCaseRisk(FCaseId CaseId, int32 Amount)
+{
+    FCase* Case = GetCaseMutable(CaseId);
+    if (!Case) return;
+
+    Case->Risk = FMath::Clamp(Case->Risk + Amount, 0, 100);
+}
+
+void UCaseSubsystem::TickCaseProgress(FCaseId CaseId, float DeltaSimTime)
+{
+    FCase* Case = GetCaseMutable(CaseId);
+    if (!Case) return;
+
+    if (Case->Status == ECaseStatus::Closed || Case->Status == ECaseStatus::Shelved)
+    {
+        return;
+    }
+
+    int32 ProgressGain = FMath::RoundToInt(DeltaSimTime * 0.02f);
+    int32 RiskGain = FMath::RoundToInt(DeltaSimTime * 0.01f);
+
+    AddCaseProgress(CaseId, ProgressGain);
+    AddCaseRisk(CaseId, RiskGain);
+
+    if (Case->Risk >= 80 && Case->Status == ECaseStatus::Open)
+    {
+        Case->Status = ECaseStatus::Compromised;
+    }
 }
 
 FTaskId UCaseSubsystem::AddTask(FCaseId CaseId, FCasePhaseId PhaseId, ETaskType Type, int32 Priority)
@@ -72,8 +189,10 @@ FTaskId UCaseSubsystem::AddTask(FCaseId CaseId, FCasePhaseId PhaseId, ETaskType 
     T.CaseId = CaseId;
     T.PhaseId = PhaseId;
     T.TaskType = Type;
-    T.Priority = Priority;
     T.Status = ETaskStatus::Pending;
+    T.Priority = Priority;
+    T.WorkAccumulated = 0.f;
+    T.WorkRequired = 100.f;
     Tasks.Add(T.TaskId, T);
     return T.TaskId;
 }
@@ -82,9 +201,14 @@ TArray<FTask> UCaseSubsystem::GetActiveTasksForCase(FCaseId CaseId) const
 {
     TArray<FTask> Result;
     for (const auto& Pair : Tasks)
-        if (Pair.Value.CaseId == CaseId && Pair.Value.Status != ETaskStatus::Complete
-            && Pair.Value.Status != ETaskStatus::Failed)
+    {
+        if (Pair.Value.CaseId == CaseId &&
+            Pair.Value.Status != ETaskStatus::Complete &&
+            Pair.Value.Status != ETaskStatus::Failed)
+        {
             Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
 
@@ -92,13 +216,20 @@ TArray<FTask> UCaseSubsystem::GetAllActiveTasks() const
 {
     TArray<FTask> Result;
     for (const auto& Pair : Tasks)
-        if (Pair.Value.Status != ETaskStatus::Complete
-            && Pair.Value.Status != ETaskStatus::Failed)
+    {
+        if (Pair.Value.Status != ETaskStatus::Complete &&
+            Pair.Value.Status != ETaskStatus::Failed)
+        {
             Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
 
-FTask* UCaseSubsystem::GetTaskMutable(FTaskId Id) { return Tasks.Find(Id); }
+FTask* UCaseSubsystem::GetTaskMutable(FTaskId Id)
+{
+    return Tasks.Find(Id);
+}
 
 FAssignmentId UCaseSubsystem::AddAssignment(FTaskId TaskId, FPawnId AgentId, float Cost, float StartTime, float EndTime)
 {
@@ -118,7 +249,12 @@ TArray<FAssignment> UCaseSubsystem::GetAssignmentsForTask(FTaskId TaskId) const
 {
     TArray<FAssignment> Result;
     for (const auto& Pair : Assignments)
-        if (Pair.Value.TaskId == TaskId) Result.Add(Pair.Value);
+    {
+        if (Pair.Value.TaskId == TaskId)
+        {
+            Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
 
@@ -139,11 +275,19 @@ TArray<FEvidence> UCaseSubsystem::GetEvidenceForCase(FCaseId CaseId) const
 {
     TArray<FEvidence> Result;
     for (const auto& Pair : Evidences)
-        if (Pair.Value.CaseId == CaseId) Result.Add(Pair.Value);
+    {
+        if (Pair.Value.CaseId == CaseId)
+        {
+            Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
 
-FEvidence* UCaseSubsystem::GetEvidenceMutable(FEvidenceId Id) { return Evidences.Find(Id); }
+FEvidence* UCaseSubsystem::GetEvidenceMutable(FEvidenceId Id)
+{
+    return Evidences.Find(Id);
+}
 
 FWarrantId UCaseSubsystem::AddWarrant(FCaseId CaseId, EWarrantType Type, const FString& Target, float IssuedTime, float ExpiryTime)
 {
@@ -163,14 +307,29 @@ TArray<FWarrant> UCaseSubsystem::GetWarrantsForCase(FCaseId CaseId) const
 {
     TArray<FWarrant> Result;
     for (const auto& Pair : Warrants)
-        if (Pair.Value.CaseId == CaseId) Result.Add(Pair.Value);
+    {
+        if (Pair.Value.CaseId == CaseId)
+        {
+            Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
 
-FWarrant* UCaseSubsystem::GetWarrantMutable(FWarrantId Id) { return Warrants.Find(Id); }
+FWarrant* UCaseSubsystem::GetWarrantMutable(FWarrantId Id)
+{
+    return Warrants.Find(Id);
+}
 
-FCaseTrack* UCaseSubsystem::GetTrackMutable(FCaseId CaseId) { return Tracks.Find(CaseId); }
-const FCaseTrack* UCaseSubsystem::GetTrack(FCaseId CaseId) const { return Tracks.Find(CaseId); }
+FCaseTrack* UCaseSubsystem::GetTrackMutable(FCaseId CaseId)
+{
+    return Tracks.Find(CaseId);
+}
+
+const FCaseTrack* UCaseSubsystem::GetTrack(FCaseId CaseId) const
+{
+    return Tracks.Find(CaseId);
+}
 
 void UCaseSubsystem::TickTaskProgress(FTaskId TaskId, float DeltaSimTime)
 {
@@ -180,9 +339,22 @@ void UCaseSubsystem::TickTaskProgress(FTaskId TaskId, float DeltaSimTime)
 
     Task->WorkAccumulated += DeltaSimTime;
 
+    FCase* Case = GetCaseMutable(Task->CaseId);
+    if (Case)
+    {
+        AddCaseProgress(Task->CaseId, FMath::RoundToInt(DeltaSimTime * 0.01f));
+        AddCaseRisk(Task->CaseId, FMath::RoundToInt(DeltaSimTime * 0.005f));
+    }
+
     if (Task->WorkAccumulated >= Task->WorkRequired)
     {
         Task->Status = ETaskStatus::Complete;
+
+        if (Case)
+        {
+            AddCaseProgress(Task->CaseId, 5);
+        }
+
         UE_LOG(LogTemp, Log, TEXT("DoDA|Case -- Task %d Complete (Case %d)"),
             TaskId.Value, Task->CaseId.Value);
         OnTaskComplete.Broadcast(TaskId, Task->CaseId);
@@ -202,8 +374,11 @@ TArray<FTask> UCaseSubsystem::GetPendingTasks() const
 {
     TArray<FTask> Result;
     for (const auto& Pair : Tasks)
+    {
         if (Pair.Value.Status == ETaskStatus::Pending)
+        {
             Result.Add(Pair.Value);
+        }
+    }
     return Result;
 }
-
