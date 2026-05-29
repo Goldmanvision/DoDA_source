@@ -1,8 +1,40 @@
+// Source/DoDA/Public/DoDASimOrchestrator.h
+// Batch 06 -- Sim orchestrator with CUI pulse and alert routing.
+// ASCII-only.
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "DoDASimOrchestrator.generated.h"
+
+UENUM(BlueprintType)
+enum class EDoDAAlertSeverity : uint8
+{
+    Info    UMETA(DisplayName = "Info"),
+    Warning UMETA(DisplayName = "Warning"),
+    Critical UMETA(DisplayName = "Critical"),
+};
+
+USTRUCT(BlueprintType)
+struct DODA_API FDoDAAlert
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString Source;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString Message;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    EDoDAAlertSeverity Severity = EDoDAAlertSeverity::Info;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float SimTimeSeconds = 0.f;
+};
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnDoDAAlert, const FDoDAAlert&);
 
 UCLASS()
 class DODA_API UDoDASimOrchestrator : public UTickableWorldSubsystem
@@ -35,20 +67,26 @@ public:
     UFUNCTION(BlueprintCallable, Category = "DoDA|Sim")
     bool IsSimPaused() const { return bPaused; }
 
+    FOnDoDAAlert OnAlert;
+
 private:
-    float SimTimeSeconds   = 0.f;
-    float TimeScale        = 1.f;
-    bool  bPaused          = false;
+    float SimTimeSeconds = 0.f;
+    float TimeScale = 1.f;
+    bool  bPaused = false;
 
     // Scheduler fires every SchedulerInterval sim-seconds
     float SchedulerIntervalMin = 2700.f;   // 45 sim-minutes
     float SchedulerIntervalMax = 4500.f;   // 75 sim-minutes
-    float SchedulerInterval = 7.f;   // will be randomized on first run
+    float SchedulerInterval = 7.f;   // randomized on first run
     float TimeSinceLastScheduler = 0.f;
 
     // Cult/paranormal step interval
-    float CultStepInterval      = 600.f;     // 10 sim-minutes
+    float CultStepInterval = 600.f;     // 10 sim-minutes
     float TimeSinceLastCultStep = 0.f;
+
+    // CUI pulse interval
+    float CUIPulseInterval = 900.f;   // 15 sim-minutes
+    float TimeSinceLastCUIPulse = 0.f;
 
     static constexpr float SecondsPerDay = 86400.f;
 
@@ -56,4 +94,7 @@ private:
     void TickCult(float DeltaSimTime);
     void TickScheduler(float DeltaSimTime);
     void TickTasks(float DeltaSimTime);
+    void TickCUI(float DeltaSimTime);
+
+    void DispatchAlert(const FString& Source, const FString& Message, EDoDAAlertSeverity Severity);
 };

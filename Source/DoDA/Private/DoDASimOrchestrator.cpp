@@ -1,3 +1,6 @@
+// Source/DoDA/Private/DoDASimOrchestrator.cpp
+// Batch 06 -- ASCII-only.
+
 #include "DoDASimOrchestrator.h"
 #include "DoDAPawn.h"
 #include "DoDACult.h"
@@ -9,11 +12,13 @@
 void UDoDASimOrchestrator::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
-    SimTimeSeconds          = 0.f;
-    TimeSinceLastScheduler  = 0.f;
-    TimeSinceLastCultStep   = 0.f;
-    bPaused                 = false;
-    TimeScale               = 1.f;
+    SimTimeSeconds = 0.f;
+    TimeSinceLastScheduler = 0.f;
+    TimeSinceLastCultStep = 0.f;
+    TimeSinceLastCUIPulse = 0.f;
+    bPaused = false;
+    TimeScale = 1.f;
+    SchedulerInterval = FMath::RandRange(SchedulerIntervalMin, SchedulerIntervalMax);
 
     UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- initialized"));
 }
@@ -33,12 +38,13 @@ void UDoDASimOrchestrator::Tick(float DeltaTime)
     if (bPaused) return;
 
     float DeltaSimTime = DeltaTime * TimeScale;
-    SimTimeSeconds    += DeltaSimTime;
+    SimTimeSeconds += DeltaSimTime;
 
     TickVitals(DeltaSimTime);
     TickCult(DeltaSimTime);
     TickScheduler(DeltaSimTime);
     TickTasks(DeltaSimTime);
+    TickCUI(DeltaSimTime);
 }
 
 void UDoDASimOrchestrator::TickVitals(float DeltaSimTime)
@@ -64,7 +70,7 @@ void UDoDASimOrchestrator::TickCult(float DeltaSimTime)
         CultSys->StepParanormal(CultStepInterval);
     }
 
-    UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- cult/paranormal step at sim-day %d"), GetSimDay());
+    DispatchAlert(TEXT("Cult"), FString::Printf(TEXT("Cult/paranormal step at sim-day %d"), GetSimDay()), EDoDAAlertSeverity::Info);
 }
 
 void UDoDASimOrchestrator::TickScheduler(float DeltaSimTime)
@@ -81,8 +87,7 @@ void UDoDASimOrchestrator::TickScheduler(float DeltaSimTime)
         Sched->RunScheduler();
     }
 
-    UE_LOG(LogTemp, Log, TEXT("DoDA|Orchestrator -- scheduler pass at sim-day %d, next in %.1fs"),
-        GetSimDay(), SchedulerInterval);
+    DispatchAlert(TEXT("Scheduler"), FString::Printf(TEXT("Scheduler pass at sim-day %d, next in %.1fs"), GetSimDay(), SchedulerInterval), EDoDAAlertSeverity::Info);
 }
 
 void UDoDASimOrchestrator::TickTasks(float DeltaSimTime)
@@ -95,4 +100,39 @@ void UDoDASimOrchestrator::TickTasks(float DeltaSimTime)
     {
         Cases->TickTaskProgress(Task.TaskId, DeltaSimTime);
     }
+}
+
+void UDoDASimOrchestrator::TickCUI(float DeltaSimTime)
+{
+    TimeSinceLastCUIPulse += DeltaSimTime;
+    if (TimeSinceLastCUIPulse < CUIPulseInterval) return;
+
+    TimeSinceLastCUIPulse = 0.f;
+
+    UCaseSubsystem* Cases = GetWorld()->GetSubsystem<UCaseSubsystem>();
+    UPawnSubsystem* Pawns = GetWorld()->GetSubsystem<UPawnSubsystem>();
+    UCultSubsystem* Cult = GetWorld()->GetSubsystem<UCultSubsystem>();
+
+    int32 OpenCases = Cases ? Cases->GetAllCases().Num() : 0;
+    int32 PawnCount = Pawns ? Pawns->Count() : 0;
+    int32 CultCells = Cult ? Cult->GetAllCells().Num() : 0;
+
+    DispatchAlert(
+        TEXT("CUI"),
+        FString::Printf(TEXT("Pulse at day %d | Cases:%d Pawns:%d CultCells:%d"), GetSimDay(), OpenCases, PawnCount, CultCells),
+        EDoDAAlertSeverity::Info
+    );
+}
+
+void UDoDASimOrchestrator::DispatchAlert(const FString& Source, const FString& Message, EDoDAAlertSeverity Severity)
+{
+    FDoDAAlert Alert;
+    Alert.Source = Source;
+    Alert.Message = Message;
+    Alert.Severity = Severity;
+    Alert.SimTimeSeconds = SimTimeSeconds;
+
+    OnAlert.Broadcast(Alert);
+
+    UE_LOG(LogTemp, Log, TEXT("DoDA|Alert -- [%s] %s"), *Source, *Message);
 }
