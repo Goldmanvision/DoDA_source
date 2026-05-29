@@ -132,7 +132,7 @@ struct DODA_API FPawnRecord
     FPawnId PawnId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString IdentityId;
+    FIdentityId IdentityId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FRoleState RoleState;

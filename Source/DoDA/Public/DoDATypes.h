@@ -207,6 +207,22 @@ struct DODA_API FEntityId
 FORCEINLINE uint32 GetTypeHash(const FEntityId& Id) { return GetTypeHash(Id.Value); }
 
 
+USTRUCT(BlueprintType)
+struct DODA_API FIdentityId
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 Value = INDEX_NONE;
+
+    bool IsValid() const { return Value != INDEX_NONE; }
+    bool operator==(const FIdentityId& Other) const { return Value == Other.Value; }
+    bool operator!=(const FIdentityId& Other) const { return Value != Other.Value; }
+};
+
+FORCEINLINE uint32 GetTypeHash(const FIdentityId& Id) { return GetTypeHash(Id.Value); }
+
+
 // ─────────────────────────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────────────────────────

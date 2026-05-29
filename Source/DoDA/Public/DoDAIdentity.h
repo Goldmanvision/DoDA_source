@@ -16,7 +16,7 @@ struct DODA_API FIdentityRecord
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString IdentityId;
+    FIdentityId IdentityId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString FullName;
@@ -48,7 +48,7 @@ struct DODA_API FIdentityRecord
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FGuid WorldGuid;
 
-    bool IsValid() const { return !IdentityId.IsEmpty(); }
+    bool IsValid() const { return IdentityId.IsValid(); }
 };
 
 
@@ -61,19 +61,21 @@ public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     virtual void Deinitialize() override;
 
-    void RegisterIdentity(const FIdentityRecord& Record);
-    void UnregisterIdentity(const FString& IdentityId);
+    FIdentityId RegisterIdentity(FIdentityRecord& Record);
+    void UnregisterIdentity(FIdentityId Id);
 
-    const FIdentityRecord* GetById(const FString& IdentityId) const;
+    const FIdentityRecord* GetById(FIdentityId Id) const;
     const FIdentityRecord* GetByGuid(const FGuid& WorldGuid) const;
 
     void SeedTestIdentities(int32 Count);
 
-    const TMap<FString, FIdentityRecord>& GetAll() const { return Records; }
+    const TMap<FIdentityId, FIdentityRecord>& GetAll() const { return Records; }
     int32 Count() const { return Records.Num(); }
 
 private:
-    TMap<FString, FIdentityRecord> Records;
-    TMap<FGuid, FString> GuidIndex;
-    int32 NextSeedId = 1;
+    TMap<FIdentityId, FIdentityRecord> Records;
+    TMap<FGuid, FIdentityId> GuidIndex;
+    int32 NextIdentityId = 1;
+
+    FIdentityId AllocateIdentityId();
 };

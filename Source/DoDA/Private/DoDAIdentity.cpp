@@ -9,7 +9,7 @@ void UIdentitySubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Super::Initialize(Collection);
     Records.Empty();
     GuidIndex.Empty();
-    NextSeedId = 1;
+    NextIdentityId = 1;
 }
 
 void UIdentitySubsystem::Deinitialize()
@@ -19,13 +19,31 @@ void UIdentitySubsystem::Deinitialize()
     Super::Deinitialize();
 }
 
-void UIdentitySubsystem::RegisterIdentity(const FIdentityRecord& Record)
+FIdentityId UIdentitySubsystem::AllocateIdentityId()
 {
-    if (!Record.IsValid()) return;
+    FIdentityId Id;
+    Id.Value = NextIdentityId++;
+    return Id;
+}
+
+FIdentityId UIdentitySubsystem::RegisterIdentity(FIdentityRecord& Record)
+{
+    if (!Record.WorldGuid.IsValid())
+    {
+        Record.WorldGuid = FGuid::NewGuid();
+    }
+
+    if (!Record.IdentityId.IsValid())
+    {
+        Record.IdentityId = AllocateIdentityId();
+    }
 
     if (const FIdentityRecord* Existing = Records.Find(Record.IdentityId))
     {
-        GuidIndex.Remove(Existing->WorldGuid);
+        if (Existing->WorldGuid.IsValid())
+        {
+            GuidIndex.Remove(Existing->WorldGuid);
+        }
     }
 
     Records.Add(Record.IdentityId, Record);
@@ -34,28 +52,35 @@ void UIdentitySubsystem::RegisterIdentity(const FIdentityRecord& Record)
     {
         GuidIndex.Add(Record.WorldGuid, Record.IdentityId);
     }
+
+    return Record.IdentityId;
 }
 
-void UIdentitySubsystem::UnregisterIdentity(const FString& IdentityId)
+void UIdentitySubsystem::UnregisterIdentity(FIdentityId Id)
 {
-    if (const FIdentityRecord* Record = Records.Find(IdentityId))
+    if (const FIdentityRecord* Record = Records.Find(Id))
     {
-        GuidIndex.Remove(Record->WorldGuid);
-        Records.Remove(IdentityId);
+        if (Record->WorldGuid.IsValid())
+        {
+            GuidIndex.Remove(Record->WorldGuid);
+        }
+
+        Records.Remove(Id);
     }
 }
 
-const FIdentityRecord* UIdentitySubsystem::GetById(const FString& IdentityId) const
+const FIdentityRecord* UIdentitySubsystem::GetById(FIdentityId Id) const
 {
-    return Records.Find(IdentityId);
+    return Records.Find(Id);
 }
 
 const FIdentityRecord* UIdentitySubsystem::GetByGuid(const FGuid& WorldGuid) const
 {
-    if (const FString* FoundId = GuidIndex.Find(WorldGuid))
+    if (const FIdentityId* FoundId = GuidIndex.Find(WorldGuid))
     {
         return Records.Find(*FoundId);
     }
+
     return nullptr;
 }
 
@@ -67,6 +92,7 @@ void UIdentitySubsystem::SeedTestIdentities(int32 Count)
         TEXT("Ivan Rook"), TEXT("Janet Farr"), TEXT("Karl Webb"),
         TEXT("Laura Stone")
     };
+
     static const TArray<FString> Jobs = {
         TEXT("Field Agent"), TEXT("Analyst"), TEXT("Forensic Tech"),
         TEXT("Archivist"), TEXT("Negotiator"), TEXT("Administrator")
@@ -75,7 +101,6 @@ void UIdentitySubsystem::SeedTestIdentities(int32 Count)
     for (int32 i = 0; i < Count; ++i)
     {
         FIdentityRecord R;
-        R.IdentityId = FString::Printf(TEXT("ID-%04d"), NextSeedId++);
         R.FullName = Names[i % Names.Num()];
         R.Age = 28 + (i % 20);
         R.Sex = (i % 2 == 0) ? TEXT("M") : TEXT("F");
