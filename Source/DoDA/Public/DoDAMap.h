@@ -24,6 +24,9 @@ struct DODA_API FTown
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     int32 Seed = 0;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector2D WorldOffset = FVector2D::ZeroVector;
+
     bool IsValid() const { return TownId.IsValid(); }
 };
 
@@ -41,6 +44,12 @@ struct DODA_API FBlock
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     EZoningType ZoningType = EZoningType::Residential;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector2D GridCoord = FVector2D::ZeroVector;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FBlockId> AdjacentBlocks;
 
     bool IsValid() const { return BlockId.IsValid(); }
 };
@@ -63,6 +72,9 @@ struct DODA_API FLot
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float Depth = 0.f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector2D LocalOffset = FVector2D::ZeroVector;
+
     bool IsValid() const { return LotId.IsValid(); }
 };
 
@@ -84,6 +96,9 @@ struct DODA_API FBuilding
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Address;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector2D LocalOffset = FVector2D::ZeroVector;
+
     bool IsValid() const { return BuildingId.IsValid(); }
 };
 
@@ -104,6 +119,12 @@ struct DODA_API FRoom
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FString> Tags;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FRoomId> ConnectedRooms;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector2D LocalOffset = FVector2D::ZeroVector;
 
     bool IsValid() const { return RoomId.IsValid(); }
 };
