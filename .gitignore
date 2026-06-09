@@ -24,3 +24,4 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 "@ | Out-File -FilePath "D:\GameDev\DoDA\.gitignore" -Encoding utf8
+Screenshots/
