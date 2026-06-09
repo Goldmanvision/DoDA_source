@@ -5,6 +5,7 @@ Build/
 DerivedDataCache/
 Intermediate/
 Saved/
+Content/
 .vs/
 *.sln
 *.suo
@@ -22,10 +23,4 @@ Saved/
 Thumbs.db
 Desktop.ini
 .DS_Store
-
-# Keep
-!Source/
-!Config/
-!Content/
-!.gitattributes
 "@ | Out-File -FilePath "D:\GameDev\DoDA\.gitignore" -Encoding utf8
