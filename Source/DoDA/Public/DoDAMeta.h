@@ -5,7 +5,7 @@
 #include "DoDAMeta.generated.h"
 
 USTRUCT(BlueprintType)
-struct FMetaState
+struct DODA_API FMetaState
 {
     GENERATED_BODY()
 
