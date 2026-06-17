@@ -433,3 +433,25 @@ enum class ECultRoleInCell : uint8
     Priest          UMETA(DisplayName = "Priest"),
     Handler         UMETA(DisplayName = "Handler"),
 };
+
+USTRUCT(BlueprintType)
+struct DODA_API FOperationId
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Value = INDEX_NONE;
+    bool IsValid() const { return Value != INDEX_NONE; }
+    bool operator==(const FOperationId& O) const { return Value == O.Value; }
+    bool operator!=(const FOperationId& O) const { return Value != O.Value; }
+};
+FORCEINLINE uint32 GetTypeHash(const FOperationId& Id) { return GetTypeHash(Id.Value); }
+
+USTRUCT(BlueprintType)
+struct DODA_API FOpPhaseId
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) int32 Value = INDEX_NONE;
+    bool IsValid() const { return Value != INDEX_NONE; }
+    bool operator==(const FOpPhaseId& O) const { return Value == O.Value; }
+    bool operator!=(const FOpPhaseId& O) const { return Value != O.Value; }
+};
+FORCEINLINE uint32 GetTypeHash(const FOpPhaseId& Id) { return GetTypeHash(Id.Value); }
